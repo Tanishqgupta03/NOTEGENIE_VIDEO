@@ -42,6 +42,13 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 });
     }
 
+    const MAX_SIZE = 250 * 1024 * 1024; // 250MB
+    if (file.size > MAX_SIZE) {
+      return NextResponse.json(
+        { error: "File too large (max 250MB)" },
+        { status: 413 }
+      );
+    }
     const buffer = await file.arrayBuffer();
     const fileBuffer = Buffer.from(buffer);
 
@@ -49,6 +56,18 @@ export async function POST(request) {
       resource_type: 'video',
       folder: 'note-genie/videos',
     });
+
+    console.log("cloudinaryResponse : ",cloudinaryResponse);
+    if (cloudinaryResponse.duration > 300) {
+      // Delete the uploaded video
+      await cloudinary.v2.uploader.destroy(cloudinaryResponse.public_id, {
+        resource_type: 'video'
+      });
+      return NextResponse.json(
+        { error: "Video exceeds 5 minute duration limit" },
+        { status: 400 }
+      );
+    }
 
     const video = await Video.create({
       userId: new mongoose.Types.ObjectId(userId), // Ensure ObjectId type

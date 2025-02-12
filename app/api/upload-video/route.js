@@ -42,10 +42,10 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 });
     }
 
-    const MAX_SIZE = 250 * 1024 * 1024; // 250MB
+    const MAX_SIZE = 100 * 1024 * 1024; // 100MB
     if (file.size > MAX_SIZE) {
       return NextResponse.json(
-        { error: "File too large (max 250MB)" },
+        { error: "File too large (max 100MB)" },
         { status: 413 }
       );
     }
@@ -57,14 +57,26 @@ export async function POST(request) {
       folder: 'note-genie/videos',
     });
 
-    console.log("cloudinaryResponse : ",cloudinaryResponse);
+    console.log("cloudinaryResponse : ", cloudinaryResponse);
+
     if (cloudinaryResponse.duration > 300) {
       // Delete the uploaded video
       await cloudinary.v2.uploader.destroy(cloudinaryResponse.public_id, {
         resource_type: 'video'
       });
       return NextResponse.json(
-        { error: "Video exceeds 5 minute duration limit" },
+        { error: "Video exceeds 5-minute duration limit" },
+        { status: 400 }
+      );
+    }
+
+    if (cloudinaryResponse.duration < 30) {
+      // Delete the uploaded video
+      await cloudinary.v2.uploader.destroy(cloudinaryResponse.public_id, {
+        resource_type: 'video'
+      });
+      return NextResponse.json(
+        { error: "Video must be at least 30 seconds long" },
         { status: 400 }
       );
     }
@@ -83,3 +95,4 @@ export async function POST(request) {
     return setCORSHeaders(response); // Apply CORS headers
   }
 }
+
